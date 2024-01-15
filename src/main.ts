@@ -6,4 +6,6 @@ import './style.css';
 
 // import './第4章 响应系统的作用与实现/4.4 分支切换与cleanup';
 
-import './第4章 响应系统的作用与实现/4.5 嵌套的effect与effect栈';
+// import './第4章 响应系统的作用与实现/4.5 嵌套的effect与effect栈';
+
+import './第4章 响应系统的作用与实现/4.6 避免无限递归循环';
