@@ -12,4 +12,6 @@ import './style.css';
 
 // import './第4章 响应系统的作用与实现/4.7 调度执行';
 
-import './第4章 响应系统的作用与实现/4.8 计算属性computed与lazy';
+// import './第4章 响应系统的作用与实现/4.8 计算属性computed与lazy';
+
+import './第4章 响应系统的作用与实现/4.9 watch的实现原';
