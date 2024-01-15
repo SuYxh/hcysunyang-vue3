@@ -14,4 +14,6 @@ import './style.css';
 
 // import './第4章 响应系统的作用与实现/4.8 计算属性computed与lazy';
 
-import './第4章 响应系统的作用与实现/4.9 watch的实现原';
+// import './第4章 响应系统的作用与实现/4.9 watch的实现原';
+
+import './第4章 响应系统的作用与实现/4.10 立即执行的watch与回调执行时机';
