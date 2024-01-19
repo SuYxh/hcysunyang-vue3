@@ -70,6 +70,7 @@ function trigger(target, key) {
 // effect 函数用于注册副作用函数
 function effect(fn, options = {}) {
   const effectFn = () => {
+    effectFn.fn = fn
     cleanup(effectFn);
     // 当调用 effect 注册副作用函数时，将副作用函数赋值给 activeEffect
     activeEffect = effectFn;
@@ -181,14 +182,15 @@ function computed(getter) {
   return obj;
 }
 
-
-const sum = computed(() => {
+debugger
+const sum = computed(function fn2() {
   console.log('computed');
   return obj.foo + obj.bar
 })
 
 
-effect(() => {
+effect(function fn1() {
+  debugger
   // 在该副作用函数中读取 sum.value
   console.log(sum.value);
 });

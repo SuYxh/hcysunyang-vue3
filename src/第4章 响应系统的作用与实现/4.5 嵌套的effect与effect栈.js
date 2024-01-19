@@ -1,4 +1,4 @@
-const data = { ok: true, text: "hello world", foo: true, bar: true };
+const data = { ok: true, text: "hello world", foo: true, bar: true, num: 1 };
 
 const bucket = new WeakMap();
 // 用一个全局变量存储被注册的副作用函数
@@ -107,8 +107,17 @@ effect(function effectFn1() {
   temp1 = obj.foo;
 });
 
+// obj.foo = false
+
 
 setTimeout(() => {
-  // debugger
+  debugger
   obj.foo = false
 }, 2000);
+
+
+// effect(() => {
+//   // obj.num ++
+//   debugger
+//   obj.num = obj.num + 1
+// })

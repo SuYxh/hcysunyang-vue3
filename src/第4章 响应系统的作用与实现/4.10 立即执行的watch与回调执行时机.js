@@ -70,6 +70,7 @@ function trigger(target, key) {
 // effect 函数用于注册副作用函数
 function effect(fn, options = {}) {
   const effectFn = () => {
+    effectFn.fn = fn
     cleanup(effectFn);
     // 当调用 effect 注册副作用函数时，将副作用函数赋值给 activeEffect
     activeEffect = effectFn;
@@ -204,6 +205,9 @@ function watch(source, cb, options = {}) {
   if (typeof source === 'function') {
     getter = source;
   } else {
+    // 为什么要使用 traverse ？traverse 的作用是什么？
+    // traverse 的作用 对 对象进行递归读取
+    // 为什么要使用 traverse： 进行依赖收集，对象上任意一项数据改变都会触发cb回调
     getter = () => traverse(source);
   }
 
@@ -237,14 +241,30 @@ function watch(source, cb, options = {}) {
 
 
 
-watch(() => obj.foo, (newVal, oldVal) => {
-  console.log('数据变化了', newVal, oldVal);
-}, {
-  immediate: true
-})
+// watch(() => obj.foo, (newVal, oldVal) => {
+//   console.log('数据变化了', newVal, oldVal);
+// }, {
+//   immediate: true
+// })
 
+
+
+
+
+// watch(() => obj.foo, (newVal, oldVal) => {
+//   console.log('数据变化了', newVal, oldVal);
+// })
+
+watch(function fn1() {
+  console.log('fn1');
+  // debugger
+  return obj.foo
+}, function fn2(newVal, oldVal){
+  console.log('fn2-数据变化了', newVal, oldVal);
+})
 
 setTimeout(() => {
   console.log('准备改变数据');
+  debugger
   obj.foo++
 }, 2000);

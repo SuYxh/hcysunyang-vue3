@@ -49,6 +49,8 @@ function trigger(target, key) {
   if (!depsMap) return;
   // 获取与特定属性键相关联的所有副作用函数
   const effects = depsMap.get(key);
+  // 这行代码有问题
+  // effects && effects.forEach((effectFn) => effectFn()); 
 
   // 创建一个新的 Set 来存储需要执行的副作用函数，避免在执行过程中的重复或无限循环
   const effectsToRun = new Set(effects);
@@ -86,20 +88,48 @@ function cleanup(effectFn) {
   effectFn.deps.length = 0;
 }
 
-effect(
-  // 匿名副作用函数
-  () => {
-    console.log("effect run"); // 会打印 2 次
-    document.body.innerText = obj.ok ? obj.text : "not";
-  }
-);
+// effect(
+//   // 匿名副作用函数
+//   () => {
+//     console.log("effect run"); // 会打印 2 次
+//     document.body.innerText = obj.ok ? obj.text : "not";
+//   }
+// );
 
-setTimeout(() => {
-  console.log("setTimeout - 2000");
-  obj.ok = false;
+// setTimeout(() => {
+//   console.log("setTimeout - 2000");
+//   obj.ok = false;
 
   // setTimeout(() => {
   //   console.log("setTimeout - 1000");
   //   obj.text = "hello vue3";
   // }, 1000);
-}, 2000);
+// }, 2000);
+
+
+// 演示嵌套的问题
+// 全局变量
+let temp1, temp2;
+
+// effectFn1 嵌套了 effectFn2
+// debugger
+effect(function effectFn1() {
+  console.log("effectFn1 执行");
+
+  effect(function effectFn2() {
+    console.log("effectFn2 执行");
+    // 在 effectFn2 中读取 obj.bar 属性
+    temp2 = obj.bar;
+  });
+
+  // 在 effectFn1 中读取 obj.foo 属性
+  temp1 = obj.foo;
+  // console.log("effectFn1 执行 over");
+});
+
+console.log(bucket);
+
+setTimeout(() => {
+  // debugger
+  obj.foo = false
+}, 0);

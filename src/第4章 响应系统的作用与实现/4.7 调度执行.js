@@ -104,23 +104,23 @@ function cleanup(effectFn) {
 /**
  * 控制执行顺序
  */
-// effect(
-//   () => {
-//     console.log('effect', obj.foo);
-//   },
-//   // options
-//   {
-//     // 调度器 scheduler 是一个函数
-//     scheduler(fn) {
-//       console.log('scheduler');
-//       // 将副作用函数放到宏任务队列中执行
-//       setTimeout(fn);
-//     }
-//   }
-// );
+effect(
+  () => {
+    console.log('effect', obj.foo);
+  },
+  // options
+  {
+    // 调度器 scheduler 是一个函数
+    scheduler(fn) {
+      console.log('scheduler');
+      // 将副作用函数放到宏任务队列中执行
+      setTimeout(fn);
+    }
+  }
+);
 
-// obj.foo++;
-// console.log('结束了');
+obj.foo++;
+console.log('结束了');
 
 
 /**
@@ -136,7 +136,7 @@ function cleanup(effectFn) {
 // obj.foo ++
 // obj.foo ++
 
-
+/* 
 // 定义一个任务队列
 const jobQueue = new Set();
 
@@ -173,3 +173,4 @@ effect(() => {
 
 obj.foo++;
 obj.foo++;
+ */

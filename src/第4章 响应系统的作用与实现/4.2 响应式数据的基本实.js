@@ -30,6 +30,10 @@ function effect() {
   document.body.innerText = obj.text;
 }
 
+function effect() {
+  console.log(obj.age);
+}
+
 // 执行副作用函数，触发读取
 effect();
 
