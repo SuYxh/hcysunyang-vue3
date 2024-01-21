@@ -12,6 +12,63 @@ let activeEffect;
 // effect 栈
 const effectStack = [];
 
+// 定义一个 Map 实例，存储原始对象到代理对象的映射
+const reactiveMap = new Map();
+
+
+// const originMethod = Array.prototype.includes;
+// const arrayInstrumentations = {
+//   includes: function(...args) {
+//     // this 是代理对象，先在代理对象中查找，将结果存储到 res 中
+//     let res = originMethod.apply(this, args);
+
+//     if (res === false) {
+//       // res 为 false 说明没找到，通过 this.raw 拿到原始数组，再去其中查找并更新 res 值
+//       res = originMethod.apply(this.raw, args);
+//     }
+//     // 返回最终结果
+//     return res;
+//   }
+// };
+
+
+const arrayInstrumentations = {};
+
+['includes', 'indexOf', 'lastIndexOf'].forEach(method => {
+  const originMethod = Array.prototype[method];
+  arrayInstrumentations[method] = function(...args) {
+    // this 是代理对象，先在代理对象中查找，将结果存储到 res 中
+    let res = originMethod.apply(this, args);
+
+    if (res === false || res === -1) {
+      // res 为 false 或 -1 说明没找到，通过 this.raw 拿到原始数组，再去其中查找，并更新 res 值
+      res = originMethod.apply(this.raw, args);
+    }
+    // 返回最终结果
+    return res;
+  };
+});
+
+// 一个标记变量，代表是否进行追踪。默认值为 true，即允许追踪
+let shouldTrack = true;
+
+// 重写数组的 push 方法
+['push', 'pop', 'shift', 'unshift', 'splice'].forEach(method => {
+  // 取得原始 push 方法
+  const originMethod = Array.prototype[method];
+
+  // 重写
+  arrayInstrumentations[method] = function(...args) {
+    // 在调用原始方法之前，禁止追踪
+    shouldTrack = false;
+    // push 方法的默认行为
+    let res = originMethod.apply(this, args);
+    // 在调用原始方法之后，恢复原来的行为，即允许追踪
+    shouldTrack = true;
+    return res;
+  };
+});
+
 function createReactive(data, isShallow = false, isReadonly = false) {
   return new Proxy(data, {
     // 拦截读取操作
@@ -19,9 +76,15 @@ function createReactive(data, isShallow = false, isReadonly = false) {
       if (key === "raw") {
         return target;
       }
+
+      if (Array.isArray(target) && arrayInstrumentations.hasOwnProperty(key)) {
+        return Reflect.get(arrayInstrumentations, key, receiver)
+      }
+
       const res = Reflect.get(target, key, receiver);
       // 将副作用函数 activeEffect 添加到存储副作用函数的桶中
-      if (!isReadonly) {
+      if (!isReadonly && typeof key !== "symbol") {
+        // if (!isReadonly) {
         track(target, key);
       }
       //  如果是浅响应，则直接返回原始值
@@ -80,7 +143,7 @@ function createReactive(data, isShallow = false, isReadonly = false) {
       // 将 ITERATE_KEY 作为追踪的 key ，为什么这么做呢？
       // 这是因为 ownKeys 拦截函数与 get/set 拦截函数不同，在set /get中，我们可以得到具体操作的 key，但是在 ownKeys中，我们只能拿到目标对象 target
       // ownKeys 用来获取一个对象的所有属于自己的键值，这个操作明显不与任何具体的键进行绑定，因此我们只能够构造唯一的 key作为标识，即 ITERATE_KEY。
-      track(target, ITERATE_KEY);
+      track(target, Array.isArray(target) ? "length" : ITERATE_KEY);
       return Reflect.ownKeys(target);
     },
     // 拦截删除
@@ -105,8 +168,22 @@ function createReactive(data, isShallow = false, isReadonly = false) {
   });
 }
 
-function reactive(data) {
-  return createReactive(data);
+// function reactive(data) {
+//   return createReactive(data);
+// }
+
+function reactive(obj) {
+  // 优先通过原始对象 obj 寻找之前创建的代理对象，如果找到了，直接返回已有的代理对象
+  const existingProxy = reactiveMap.get(obj);
+  if (existingProxy) return existingProxy;
+
+  // 否则，创建新的代理对象
+  const proxy = createReactive(obj);
+
+  // 存储到 Map 中，从而避免重复创建
+  reactiveMap.set(obj, proxy);
+
+  return proxy;
 }
 
 function shallowReactive(data) {
@@ -124,7 +201,7 @@ function shallowReadonly(data) {
 // 在 get 拦截函数内调用 track 函数追踪变化
 function track(target, key) {
   // 没有 activeEffect，直接 return
-  if (!activeEffect) return;
+  if (!activeEffect || !shouldTrack) return;
   let depsMap = bucket.get(target);
   if (!depsMap) {
     bucket.set(target, (depsMap = new Map()));
@@ -342,10 +419,73 @@ function watch(source, cb, options = {}) {
 // arr[1] = "bar";
 
 // case2
-const arr = reactive(["foo"]);
+// const arr = reactive(["foo"]);
 
-effect(function effectFn() {
-  console.log(arr[0]);
-});
+// effect(function effectFn() {
+//   console.log(arr[0]);
+// });
 
-arr.length = 0;
+// arr.length = 0;
+
+// case 3
+// const arr = reactive(["foo"]);
+
+// effect(function effectFn() {
+//   for (const key in arr) {
+//     console.log(key);
+//   }
+// });
+
+// arr[1] = 'bar'
+
+// arr.length = 0
+
+// case 4
+// const arr = reactive([1, 2, 3, 4, 5])
+
+// effect(() => {
+//   // for (const val of arr.values()) {
+//   //   console.log(val)
+//   // }
+
+//   // 如果在 getter 函数中进行 track 时不增加 typeof key !== 'symbol' 这个判断，就会报错： Uncaught TypeError: Cannot convert a Symbol value to a number
+//   for (const val of arr) {
+//     console.log(val)
+//   }
+// })
+
+// // arr[1] = 'bar'
+// arr.length = 0
+
+// console.log(bucket);
+
+// case5
+// const arr = reactive([1, 2, 3, 4, 5])
+
+// effect(function effectFn() {
+//   console.log(arr.includes(1));
+// })
+
+// arr[0] = 99
+
+// case 6
+// const obj = {};
+// const arr = reactive([obj]);
+
+// // arr.includes(arr[0])语句中，arr是代理对象，所以 includes函数执行时的 this指向的是代理对象，即 arr
+// // console.log(arr.includes(arr[0]));
+
+// // 因为 includes内部的 this指向的是代理对象 arr，并且在获取数组元素时得到的值也是代理对象，所以拿原始对象 obj去查找肯定找不到，因此返回 false。
+// console.log(arr.includes(obj));
+
+
+// case 7
+const arr = reactive([])
+
+effect(function effectFn1() {
+  arr.push(1)
+})
+
+effect(function effectFn2() {
+  arr.push(2)
+})
