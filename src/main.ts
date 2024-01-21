@@ -18,7 +18,9 @@ import './style.css';
 
 // import './第4章 响应系统的作用与实现/4.10 立即执行的watch与回调执行时机';
 
-import './第5章 非原始值的响应式方案/5.3 如何代理object';
+// import './第5章 非原始值的响应式方案/5.3 如何代理object';
+
+import './第5章 非原始值的响应式方案/5.4 合理地触发响应';
 
 // import './vue/effect';
 
